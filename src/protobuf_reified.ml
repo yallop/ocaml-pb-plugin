@@ -12,6 +12,11 @@ sig
   type message
   val message : string -> message
 
+  type service
+  val service : string -> service
+  val method_ : service -> string -> input_type:string -> output_type:string ->
+                unit
+
   type enum
   val enum : string -> enum
   val constant : string -> enum -> int32 -> unit
@@ -42,7 +47,7 @@ end
 
 module Generate : sig
   include GEN
-  val write : Format.formatter -> message list -> enum list -> unit
+  val write : Format.formatter -> message list -> enum list -> service list -> unit
 end =
 struct
   let ocaml_keywords = [
@@ -76,6 +81,10 @@ struct
     field_type: field;
     field_class: [`required | `optional of string option | `repeated]
   }
+  and service = {
+    service_name: string;
+    mutable methods: method_ list;
+  }
   and method_ = {
     method_name: string;
     input_type: string;
@@ -88,6 +97,9 @@ struct
   let basic typ c : field = Basic { basic_type=typ; basic_constructor=c }
   let message name : message = { message_name=name; fields = [] }
   and enum name : enum = { enum_name=name; constants = [] }
+  and service name : service = { service_name=name; methods = [] }
+  and method_ service method_name ~input_type ~output_type =
+    service.methods <- { method_name; input_type; output_type } :: service.methods
   and constant name enum value = enum.constants <- (name, value) :: enum.constants
   and enum_field e = Enum e
   and message_field m = Message m
@@ -399,9 +411,52 @@ struct
       pr "@]@\nend@\n@\n";
     end
 
-  let write fmt messages enums =
+  let write_method _fmt { method_name=_; input_type=_; output_type=_ } =
+    (* input_type and output_type must refer to message types *)
+    assert false
+
+(*
+
+TODO:
+
+service Foo {
+ method bar : M₁ → M₂
+ method baz : M₃ → M₄
+}
+~>
+
+module Foo_server(T: TRANSPORT)
+ (M:sig
+     val bar : M₁.s → M₂.s
+     val baz : M₃.s → M₄.s
+    end) =
+struct
+  let run config =
+     let () = T.setup config
+        (function
+          | "bar" → T.write (Pb.write (M₂.mk (M.bar (M₁.extract (T.read (Pb.read M₁.t))))))
+          | "baz" → T.write (Pb.write (M₄.mk (M.bar (M₃.extract (T.read (Pb.read M₃.t))))))
+          | _ → failwith "unknown") in
+     T.start config
+  let stop = T.stop
+end
+
+ *)
+
+  let write_service fmt { service_name; methods } =
+    let pr f = Format.fprintf fmt f in
+    let module_name = String.capitalize_ascii service_name in
+    begin
+      pr "module@ %s(T:TRANSPORT) (M:sig end)@ =@ @[hov 2>struct@\n" module_name;
+      List.iter (write_method fmt) methods;
+      pr "@]@\nend@\n@\n";
+    end
+
+
+  let write fmt messages enums services =
     write_prologue fmt;
     write_forward_declarations fmt messages enums;
     List.iter (write_message fmt) messages;
-    List.iter (write_enum fmt) enums
+    List.iter (write_enum fmt) enums;
+    List.iter (write_service fmt) services
 end

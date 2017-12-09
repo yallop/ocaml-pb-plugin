@@ -36,6 +36,9 @@ sig
   val message : t -> string -> G.message
   (** hash-consed messages *)
 
+  val service : t -> string -> G.service
+  (** hash-consed services *)
+
   val write_ml : Format.formatter -> t -> unit
   (** write out the contents of the context as an OCaml module *)
 end =
@@ -44,11 +47,13 @@ struct
     package: string option;
     enums: (string, G.enum) Hashtbl.t;
     messages: (string, G.message) Hashtbl.t;
+    services: (string, G.service) Hashtbl.t;
   }
   let create ~package =
     { package;
       messages = Hashtbl.create 10;
-      enums = Hashtbl.create 10 }
+      enums = Hashtbl.create 10;
+      services = Hashtbl.create 10 }
 
   let message {messages; _} s =
     let s = basename s in
@@ -64,10 +69,17 @@ struct
     | exception Not_found ->
        let e = G.enum s in (Hashtbl.add enums s e; e)
 
-  let write_ml fmt { package=_ ; enums ; messages } =
+  let service {services; _} s =
+    let s = basename s in
+    match Hashtbl.find services s with
+    | e -> e
+    | exception Not_found ->
+       let e = G.service s in (Hashtbl.add services s e; e)
+
+  let write_ml fmt { package=_ ; enums ; messages ; services } =
     (* TODO: package? *)
     let as_list h = Hashtbl.fold (fun _ -> List.cons) h [] in
-    G.write fmt (as_list messages) (as_list enums)
+    G.write fmt (as_list messages) (as_list enums) (as_list services)
 end
 
 module Enum :
@@ -232,6 +244,64 @@ struct
        end
 end
 
+module Service =
+struct
+  module MO = M.MethodOptions
+
+  let handle_option { MO.deprecated; idempotency_level; uninterpreted_option=_ } =
+    begin
+      if deprecated
+      then warnf "ignoring option deprecated";
+
+      begin match M.IdempotencyLevel.T.of_value (Pb.constant_value idempotency_level) with
+         | `IDEMPOTENCY_UNKNOWN -> ()
+         | `NO_SIDE_EFFECTS -> warnf "ignoring idempotency level (no side effects)"
+         | `IDEMPOTENT -> warnf "ignoring idempotency level (idempotent)"
+      end;
+    end
+
+  let resolve_type _context _name =
+    "<unresolved-type>" (* TODO  *)
+
+  module MD = M.MethodDescriptorProto
+
+  let genmethod context service = function
+      { MD.name = None; _ } -> failf "nameless methods not supported"
+    | { MD.input_type = None; _ } -> failf "methods without input types not supported"
+    | { MD.output_type = None; _ } -> failf "methods without output types not supported"
+    | { MD.name = Some name; input_type = Some input_type;
+        output_type = Some output_type; options;
+        client_streaming; server_streaming } ->
+       iter_opt handle_option options;
+       begin
+         if client_streaming
+         then warnf "ignoring option client_streaming";
+
+         if server_streaming
+         then warnf "ignoring option server_streaming";
+       end;
+       let input_type = resolve_type context input_type
+       and output_type = resolve_type context output_type in
+       G.method_ service name ~input_type ~output_type
+
+  module SO = M.ServiceOptions
+
+  let handle_option { SO.deprecated; uninterpreted_option=_ } =
+    begin
+      if deprecated
+      then warnf "ignoring option deprecated";
+    end
+
+  module S = M.ServiceDescriptorProto
+
+  let generate context = function
+    | { S.name = None; _ } -> failf "nameless services not supported"
+    | { S.name = Some name ; method_; options } ->
+       iter_opt handle_option options;
+       let service = Context.service context name in
+       List.iter (genmethod context service) method_
+end
+
 let generate1 _input_file
     { M.FileDescriptorProto.name; enum_type; message_type; service; package;
       dependency=_;        (* ? *)
@@ -244,7 +314,7 @@ let generate1 _input_file
   M.File.T.m Pb.msg =
   begin
     let context = Context.create ~package in
-    begin match service with [] -> () | _ :: _ -> failf "Services not yet supported" end;
+    List.iter (Service.generate context) service;
     List.iter (Enum.generate context) enum_type;
     let () = List.iter (Message.generate context) message_type in
     let name = map_opt
