@@ -1,0 +1,21 @@
+opam-version: "1.2"
+name: "pb-plugin"
+version: "dev"
+maintainer: "Jeremy Yallop <yallop@docker.com>"
+authors: "Jeremy Yallop <yallop@docker.com>"
+homepage: "https://github.com/yallop/ocaml-pb-plugin"
+bug-reports: "https://github.com/yallop/ocaml-pb-plugin/issues"
+license: "MIT"
+dev-repo: "https://github.com/yallop/ocaml-pb-plugin.git"
+build: [[ "ocaml" "pkg/pkg.ml" "build" "--dev-pkg" "%{pinned}%" ]]
+build-test: [make "test"]
+depends: [
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "topkg" {build & >= "0.9.0"}
+  "pb"
+  "angstrom"
+  "faraday"
+  "batteries"
+  "ounit" {test}
+]
