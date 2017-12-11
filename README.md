@@ -5,7 +5,7 @@ A [`protoc`][protoc] plugin that turns `.proto` files into OCaml protobuf serial
 ### Use
 
 ```
-protoc --plugin=protoc-gen-custom=$(type -p pb-plugin) --custom_out=./build file.proto
+protoc --plugin=protoc-gen-custom=$(type -p pb_plugin) --custom_out=./build file.proto
 ```
 
 ### Implementation notes
