@@ -1,0 +1,8 @@
+(rule
+ (targets comprehensive.ml)
+ (deps comprehensive.proto)
+ (action (run protoc --plugin=protoc-gen-custom=%{bin:pb-plugin} --custom_out . %{deps})))
+
+(test
+ (name test)
+ (libraries ounit batteries faraday pb integers))

@@ -6,13 +6,12 @@
  *)
 
 open OUnit2
-open Unsigned
 module C = Comprehensive
 
 let msg_to_string m = Faraday.serialize_to_string (Pb.write m)
 
 let read_from_string p s =
-  match Angstrom.parse_only p (`String s) with
+  match Angstrom.parse_string p s with
   | Result.Error _ -> Printf.kprintf failwith "parse failure (%s)" s
   | Result.Ok v -> v
 
@@ -40,7 +39,9 @@ let test_interoperability_comprehensive_read _ =
   let c = extract (read_from_string (Pb.read C.Types_.Comprehensive.t)
                      comprehensive_string) in
   begin
-    let u32 = UInt32.of_int and u64 = UInt64.of_int and bytes = Bytes.of_string in
+    let u32 = Unsigned.UInt32.of_int
+    and u64 = Unsigned.UInt64.of_int
+    and bytes = Bytes.of_string in
     assert (c.repeated_uint32 = [u32 1; u32 2]);
     assert (c.required_int32 = 3_l);
     let s = c.required_Small in
@@ -115,7 +116,8 @@ let test_interoperability_small_write _ =
 
 
 let test_interoperability_comprehensive_write _ =
-  let u32 = UInt32.of_int and u64 = UInt64.of_int and bytes = Bytes.of_string in
+  let u32 = Unsigned.UInt32.of_int
+  and u64 = Unsigned.UInt64.of_int and bytes = Bytes.of_string in
   let s = C.Small.mk ~small_s:"abc" ~small_i:17_L () in
   let s2 = C.Small.mk ~small_i:100_L () in
   let c = C.Comprehensive.mk

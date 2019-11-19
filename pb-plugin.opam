@@ -1,0 +1,26 @@
+opam-version: "2.0"
+maintainer: "Jeremy Yallop <yallop@docker.com>"
+authors: "Jeremy Yallop <yallop@docker.com>"
+homepage: "https://github.com/yallop/ocaml-pb-plugin"
+bug-reports: "https://github.com/yallop/ocaml-pb-plugin/issues"
+license: "MIT"
+dev-repo: "git+https://github.com/yallop/ocaml-pb-plugin.git"
+build: [
+  ["dune" "subst"] {pinned}
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "runtest" "-p" name "-j" jobs] {with-test}
+  ["dune" "build" "@doc" "-p" name "-j" jobs] {with-doc}
+]
+depends: [
+  "ocaml" {>= "4.02"}
+  "dune" {>= "1.0"}
+  "batteries"
+  "pb"
+  "angstrom"
+  "faraday"
+  "ounit" {with-test}
+]
+synopsis:"A protoc plugin that turns .proto files into OCaml protobuf serialization functions built with the pb library"
+description:"""
+A protoc plugin that turns .proto files into OCaml protobuf serialization functions built with the pb library
+"""
