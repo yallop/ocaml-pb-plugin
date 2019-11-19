@@ -5,4 +5,4 @@
 
 (test
  (name test)
- (libraries ounit batteries faraday pb integers))
+ (libraries ounit2 angstrom batteries faraday pb integers))
