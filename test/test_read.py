@@ -8,15 +8,13 @@ def from_string(msg, filename):
         return msg.FromString(fd.read())
 
 def main():
-    small = from_string(test_pb2.Small,
-                        'test/small.ocaml.serialized')
+    small = from_string(test_pb2.Small, 'small.ocaml.serialized')
     assert small.small_s == 'abc'
     assert small.small_i == 17
 
     if True: return
 
-    c = from_string(test_pb2.Comprehensive,
-                    'test/comprehensive.ocaml.serialized')
+    c = from_string(test_pb2.Comprehensive, 'comprehensive.ocaml.serialized')
     assert list(c.repeated_uint32) == [1,2]
     assert c.required_int32 == 3
     s1 = c.required_Small
