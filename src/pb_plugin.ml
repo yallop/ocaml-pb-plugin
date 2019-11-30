@@ -5,8 +5,6 @@
  * See the file LICENSE for details.
  *)
 
-module Unused = struct open Protobuf_reified end
-
 module M = Protoc_messages
 module G = Protobuf_reified.Generate
 
@@ -275,9 +273,10 @@ let run msg =
   | exception (Error s) ->
     M.CodeGeneratorResponse.mk ~file:[] ~error:s ()
 
+
 let main () =
-  let stdin_buf = `String (BatIO.(read_all stdin)) in
-  match Angstrom.parse_only (Pb.read M.CodeGeneratorRequest.T.t) stdin_buf with
+  let stdin_buf = BatIO.(read_all stdin) in
+  match Angstrom.parse_string (Pb.read M.CodeGeneratorRequest.T.t) stdin_buf with
     Result.Error e -> failf "Error parssing request: %s" e
   | Result.Ok msg -> print_string (Faraday.serialize_to_string
                                      (Pb.write (run msg)))

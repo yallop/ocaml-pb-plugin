@@ -45,6 +45,7 @@ module Generate : sig
   val write : Format.formatter -> message list -> enum list -> unit
 end =
 struct
+  [@@@ocaml.warning "-34"]
   let ocaml_keywords = [
     "and"; "as"; "assert"; "asr"; "begin"; "class"; "constraint";
     "do"; "done"; "downto"; "effect"; "else"; "end"; "exception";
@@ -261,7 +262,7 @@ struct
 
   let write_forward_declarations fmt messages enums =
     let pr f = Format.fprintf fmt f in
-    (** Pb.message bindings *)
+    (* Pb.message bindings *)
     pr "module@ Types_@ =@ struct@\n@[<v 2>";
     ListLabels.iter messages ~f:begin fun { message_name; _ } ->
       let module_name = String.capitalize_ascii message_name in
@@ -281,7 +282,7 @@ struct
       pr "end@]@]@\n";
     end;
 
-    (** name bindings *)
+    (* name bindings *)
     let write_field_type fmt typ =
       match typ with
         Basic b -> Format.fprintf fmt "Pb.%s" b.basic_constructor
@@ -311,7 +312,7 @@ struct
     end;
 
 
-    (** type s bindings *)
+    (* type s bindings *)
     ListLabels.iteri messages ~f:begin fun i { message_name; fields; _ } ->
       let module_name = String.capitalize_ascii message_name in
       pr "@ @[%s@ s_%s@ =@ {@\n" (if i = 0 then "type" else "and") module_name;
@@ -319,7 +320,7 @@ struct
       pr "}@]";
     end;
 
-    (** extract bindings *)
+    (* extract bindings *)
 
     let field_expr cls typ name =
       match cls, typ with
