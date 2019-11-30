@@ -1,3 +1,5 @@
+## [Note: this plugin is now developed alongside the library in the [pb](https://github.com/yallop/ocaml-pb) repository.]
+
 ## pb-plugin
 
 A [`protoc`][protoc] plugin that turns `.proto` files into OCaml protobuf serialization functions built with the [`pb`][pb] library.
